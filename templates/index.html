@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analyzer</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: black;
+            color: gold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .box {
+            background: #111;
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid gold;
+            width: 400px;
+            text-align: center;
+        }
+
+        textarea, input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: black;
+            color: gold;
+            border: 1px solid gold;
+            border-radius: 8px;
+        }
+
+        button {
+            margin-top: 15px;
+            padding: 10px;
+            width: 100%;
+            background: gold;
+            color: black;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        #result {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="box">
+    <h2>Sentiment Analyzer</h2>
+
+    <input type="file" id="csvFile">
+    <textarea id="text" placeholder="Enter text..."></textarea>
+
+    <button onclick="predict()">Predict</button>
+
+    <div id="result"></div>
+</div>
+
+<script>
+function predict() {
+    const text = document.getElementById("text").value.trim();
+    const file = document.getElementById("csvFile").files[0];
+    const resultDiv = document.getElementById("result");
+
+    resultDiv.innerHTML = "";
+
+    // ✅ TEXT PREDICTION
+    if (text !== "") {
+        fetch("/predict", {   // ✅ FIXED HERE (NO localhost)
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ text: text })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.prediction) {
+                resultDiv.innerHTML = "<h3>Prediction: " + data.prediction + "</h3>";
+            } else {
+                resultDiv.innerHTML = "<span style='color:red'>" + data.error + "</span>";
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            resultDiv.innerHTML = "Request failed";
+        });
+    }
+
+    // ✅ FILE PREDICTION
+    else if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        fetch("/predict", {   // ✅ FIXED HERE TOO
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.blob())
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "Predictions.csv";
+            a.click();
+        });
+    }
+
+    else {
+        alert("Enter text or upload file");
+    }
+}
+</script>
+
+</body>
+</html>
