@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analyzer</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #000;
+            color: #FFD700;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 420px;
+            background: #111;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0px 0px 20px rgba(255, 215, 0, 0.2);
+            border: 1px solid #FFD700;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 8px;
+            border: 1px solid #FFD700;
+            background: #000;
+            color: #FFD700;
+        }
+
+        textarea::placeholder {
+            color: #c9a94d;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 20px;
+            background: #FFD700;
+            color: black;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        #predictionResult {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #FFD700;
+            border-radius: 8px;
+            min-height: 40px;
+        }
+
+        #graphContainer {
+            margin-top: 20px;
+        }
+
+        img {
+            max-width: 100%;
+            margin-top: 10px;
+            border-radius: 10px;
+            border: 1px solid #FFD700;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>Sentiment Analyzer 🚀</h1>
+
+    <form id="predictionForm">
+        <input type="file" id="csvFileInput" accept=".csv">
+        <textarea id="textInput" placeholder="Enter text..."></textarea>
+
+        <button type="button" onclick="predict(event)">Predict</button>
+        <button type="button" id="downloadBtn" style="display:none">Download Predictions</button>
+    </form>
+
+    <div id="predictionResult"></div>
+    <div id="graphContainer"></div>
+</div>
+
+<script>
+function predict(event) {
+    if (event) event.preventDefault();
+
+    console.log("Clicked");
+
+    var csvFileInput = document.getElementById("csvFileInput");
+    var textInput = document.getElementById("textInput");
+    var predictionResult = document.getElementById("predictionResult");
+    var graphContainer = document.getElementById("graphContainer");
+
+    // Clear previous results
+    predictionResult.innerHTML = "";
+    graphContainer.innerHTML = "";
+
+    // ✅ TEXT PREDICTION
+    if (textInput.value.trim() !== "") {
+
+        fetch("/predict", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ text: textInput.value.trim() })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Server error");
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Response:", data);
+
+            if (data.prediction) {
+                predictionResult.innerHTML =
+                    "<h3 style='color:#FFD700;'>Prediction: " + data.prediction + "</h3>";
+            } else {
+                predictionResult.innerHTML =
+                    "<span style='color:red;'>Error: " + data.error + "</span>";
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            predictionResult.innerHTML =
+                "<span style='color:red;'>Request failed</span>";
+        });
+
+    } 
+
+    // ✅ CSV PREDICTION
+    else if (csvFileInput.files.length > 0) {
+
+        var formData = new FormData();
+        formData.append("file", csvFileInput.files[0]);
+
+        fetch("/predict", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.blob())
+        .then(blob => {
+
+            document.getElementById("downloadBtn").style.display = "block";
+
+            document.getElementById("downloadBtn").onclick = function () {
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement("a");
+                a.href = url;
+                a.download = "Predictions.csv";
+                a.click();
+            };
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            predictionResult.innerHTML =
+                "<span style='color:red;'>CSV upload failed</span>";
+        });
+
+    } 
+
+    else {
+        alert("Please enter text or upload a CSV file");
+    }
+}
+</script>
+
+</body>
+</html>
